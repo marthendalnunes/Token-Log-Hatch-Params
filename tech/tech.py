@@ -83,7 +83,7 @@ class TECH(param.Parameterized):
         self.impact_hour_data['Maximum Payout (wXDAI)'] = self.impact_hour_data['Impact Hours'] * scenario_rates['max_rate']
         return self.impact_hour_data.hvplot.table()
 
-    """
+    
     def impact_hours_formula(self, minimum_raise, maximum_raise):
         x = np.linspace(minimum_raise, maximum_raise, num=500)
         R = self.maximum_impact_hour_rate
@@ -93,16 +93,7 @@ class TECH(param.Parameterized):
         df = pd.DataFrame([x,y]).T
         df.columns = ['Total XDAI Raised','Impact Hour Rate']
         return df
-    """
-    def impact_hours_formula(self, minimum_raise, maximum_raise):
-        x = np.linspace(0, 1000, num=1000)
-        R = self.maximum_impact_hour_rate
-        m = self.impact_hour_slope
-        H = self.total_impact_hours
-        y = [R* (x / (x + m*H)) for x in x]
-        df = pd.DataFrame([x,y]).T
-        df.columns = ['Total XDAI Raised','Impact Hour Rate']
-        return df
+    
 
     def impact_hours_view(self):
         #df = self.impact_hours_formula(0, int(self.min_max_raise[1]))
@@ -185,44 +176,12 @@ class TECH(param.Parameterized):
         # Add 'Min Raise' label case there is already a row with min_raise value
         df_hatch_params.loc[df_hatch_params['Total XDAI Raised'] == int(self.min_max_raise[0]), 'label'] = "Min Raise"
 
-        # Add a new row with min_raise vale case there is no row with its value
-        #if "Min Raise" not in df_hatch_params['label']:
-        #    df_hatch_params.loc[df_hatch_params['Total XDAI Raised'] == int(self.min_max_raise[0]), 'label'] = "Min Raise"
-
-        #df_min_raise = df_hatch_params.query("label == 'Min Raise'")
-        #if len(df_min_raise) > 1:
-        #    df_hatch_params = df_hatch_params.drop(df_min_raise.first_valid_index())
-
         # Add 'Target Raise' label case there is already a row with target_raise value
         df_hatch_params.loc[df_hatch_params['Total XDAI Raised'] == self.target_raise, 'label'] = "Target Raise"
-
-        # Add a new row with target_raise vale case there is no row with its value
-        #if "Target Raise" not in df_hatch_params['label']:
-        #    impact_hour_rate = R* (self.target_raise / (self.target_raise + m*H))
-        #    cultural_build_tribute = (H * impact_hour_rate)/self.target_raise
-        #    df_hatch_params = df_hatch_params.append({'Total XDAI Raised': self.target_raise, 'Impact Hour Rate':impact_hour_rate, 'Cultural Build Tribute':cultural_build_tribute, 'Hatch tribute':hatch_tribute, 'Redeemable':(1 - hatch_tribute)/(1 + cultural_build_tribute), 'label':'Target Raise'}, ignore_index=True)
-        #    df_hatch_params = df_hatch_params.sort_values(['Total XDAI Raised'])
-
-        #df_target_raise = df_hatch_params.query("label == 'Target Raise'")
-        #if len(df_target_raise) > 1:
-        #    df_hatch_params = df_hatch_params.drop(df_target_raise.first_valid_index())
 
         # Add 'Max Raise' label case there is already a row with target_raise value
         df_hatch_params.loc[df_hatch_params['Total XDAI Raised'] == int(self.min_max_raise[1]), 'label'] = "Max Raise"
 
-        # Add a new row with max_raise vale case there is no row with its value
-        #if "Max Raise" not in df_hatch_params['label']:
-        #    impact_hour_rate = R* (self.min_max_raise[1] / (self.min_max_raise[1] + m*H))
-        #    cultural_build_tribute = (H * impact_hour_rate)/self.min_max_raise[1]
-        #    df_hatch_params = df_hatch_params.append({'Total XDAI Raised': self.min_max_raise[1], 'Impact Hour Rate':impact_hour_rate, 'Cultural Build Tribute':cultural_build_tribute, 'Hatch tribute':hatch_tribute, 'Redeemable':(1 - hatch_tribute)/(1 + cultural_build_tribute), 'label':'Max Raise'}, ignore_index=True)
-        #    df_hatch_params = df_hatch_params.sort_values(['Total XDAI Raised'])
-
-        #df_max_raise = df_hatch_params.query("label == 'Max Raise'")
-        #if len(df_max_raise) > 1:
-        #    df_hatch_params = df_hatch_params.drop(df_max_raise.first_valid_index())
-
-        # Send to zero the IH rate, cultural build tribute and hatch tribue of
-        # amount raises smaller than the min target
         df_hatch_params.loc[df_hatch_params['Total XDAI Raised'] < int(self.min_max_raise[0]), ['Impact Hour Rate','Cultural Build Tribute', 'Hatch tribute']] = 0
         df_hatch_params.loc[df_hatch_params['Total XDAI Raised'] < int(self.min_max_raise[0]), 'Redeemable'] = 1
         df_hatch_params.loc[df_hatch_params['Total XDAI Raised'] > int(self.min_max_raise[1]), ['Impact Hour Rate','Cultural Build Tribute', 'Hatch tribute', 'Redeemable']] = np.nan
@@ -237,26 +196,26 @@ class TECH(param.Parameterized):
         return df_hatch_params
 
     def redeemable_plot(self):
-        df_hatch_params = self.output_scenarios()
+        df_hatch_params_to_plot = self.output_scenarios()
         # Drop NaN rows
-        df_hatch_params_to_plot = df_hatch_params.dropna()
-        df_hatch_params_to_plot['Redeemable'] = df_hatch_params_to_plot['Redeemable'] * 100
+        df_hatch_params_to_plot = df_hatch_params_to_plot.dropna()
+        df_hatch_params_to_plot['Redeemable'] = df_hatch_params_to_plot['Redeemable'].mul(100)
         redeemable_plot = df_hatch_params_to_plot.hvplot.area(title='Redeemable (%)', x='Total XDAI Raised', y='Redeemable',  xformatter='%.0f', yformatter='%.1f', hover=True, ylim=(0, 100), xlim=(0,1000)).opts(axiswise=True)
         try:
-            redeemable_target = 100 * df_hatch_params.loc[df_hatch_params['Total XDAI Raised'] == self.target_raise]['Redeemable'].values[0]
+            redeemable_target = df_hatch_params_to_plot.loc[df_hatch_params_to_plot['Total XDAI Raised'] == self.target_raise]['Redeemable'].values[0]
         except:
             redeemable_target = 0
         
         return redeemable_plot * hv.VLine(self.target_raise).opts(color='#E31212') * hv.HLine(redeemable_target).opts(color='#E31212')
 
     def cultural_build_tribute_plot(self):
-        df_hatch_params = self.output_scenarios()
+        df_hatch_params_to_plot = self.output_scenarios()
         # Drop NaN rows
-        df_hatch_params_to_plot = df_hatch_params.dropna()
-        df_hatch_params_to_plot['Cultural Build Tribute'] = df_hatch_params_to_plot['Cultural Build Tribute'] * 100
+        df_hatch_params_to_plot = df_hatch_params_to_plot.dropna()
+        df_hatch_params_to_plot['Cultural Build Tribute'] = df_hatch_params_to_plot['Cultural Build Tribute'].mul(100)
         cultural_build_tribute_plot = df_hatch_params_to_plot.hvplot.area(title='Cultural Build Tribute (%)', x='Total XDAI Raised', y='Cultural Build Tribute',  xformatter='%.0f', yformatter='%.1f', hover=True, ylim=(0, 100), xlim=(0,1000)).opts(axiswise=True)
         try:
-            cultural_build_tribute_target = 100 * df_hatch_params.loc[df_hatch_params['Total XDAI Raised'] == self.target_raise]['Cultural Build Tribute'].values[0]
+            cultural_build_tribute_target = df_hatch_params_to_plot.loc[df_hatch_params_to_plot['Total XDAI Raised'] == self.target_raise]['Cultural Build Tribute'].values[0]
         except:
             cultural_build_tribute_target = 0
         return cultural_build_tribute_plot * hv.VLine(self.target_raise).opts(color='#E31212') * hv.HLine(cultural_build_tribute_target).opts(color='#E31212') 
